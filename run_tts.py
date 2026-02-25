@@ -27,10 +27,21 @@ def main():
     parser.add_argument("--language", type=str, default="English", help="Language")
     parser.add_argument("--instruct", type=str, default="", help="Style instruction")
     parser.add_argument("--list-speakers", action="store_true", help="List available speakers")
+    parser.add_argument("--device", type=str, default="auto", help="Device: auto, cpu, mps, cuda")
     
     args = parser.parse_args()
     
-    device = get_device()
+    # Handle auto device selection
+    if args.device == "auto":
+        import torch
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+    else:
+        device = args.device
     print(f"Using device: {device}")
     
     # Import here to show clear error if not installed

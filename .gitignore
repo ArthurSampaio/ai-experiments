@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+
+# Models and caches
+models/
+*.bin
+*.safetensors
+*.gguf
+.huggingface/
+*.cache
+
+# Media files
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.mp4
+*.mov
+*.avi
+
+# Data
+data/outputs/
+*.json
+*.csv
+
+# OS
+.DS_Store
+Thumbs.db

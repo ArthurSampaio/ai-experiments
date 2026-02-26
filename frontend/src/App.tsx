@@ -71,13 +71,18 @@ function App() {
       });
       
       const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
       
-      // Auto-play the generated audio
+      // Auto-play the generated audio - set src and load before playing
       if (audioRef.current) {
         audioRef.current.src = url;
-        audioRef.current.play();
+        audioRef.current.load();
+        audioRef.current.play().catch(err => {
+          console.warn('Auto-play blocked:', err);
+        });
       }
+      
+      // Update state after setting up audio
+      setAudioUrl(url);
     } catch (err) {
       console.error('Failed to generate speech:', err);
       setError('Failed to generate speech. Check console for details.');

@@ -33,6 +33,12 @@ function App() {
   } = useStreamingAudio({
     onError: (err) => setError(err.message),
   });
+
+  // Batch mode state
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [batchTexts, setBatchTexts] = useState<string[]>(['']);
+  const [batchResults, setBatchResults] = useState<Array<{ success: boolean; audio?: string; error?: string } | null>>([]);
+  const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   
   // Audio player ref
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -128,7 +134,73 @@ function App() {
     }
   };
 
+  // Toggle batch mode
+  const toggleBatchMode = () => {
+    setIsBatchMode(!isBatchMode);
+    setBatchTexts(['']);
+    setBatchResults([]);
+  };
+
+  // Add another batch input
+  const addBatchInput = () => {
+    if (batchTexts.length < 10) {
+      setBatchTexts([...batchTexts, '']);
+    }
+  };
+
+  // Remove batch input
+  const removeBatchInput = (index: number) => {
+    if (batchTexts.length > 1) {
+      const newTexts = batchTexts.filter((_, i) => i !== index);
+      setBatchTexts(newTexts);
+      // Also remove corresponding result
+      const newResults = batchResults.filter((_, i) => i !== index);
+      setBatchResults(newResults);
+    }
+  };
+
+  // Update batch text
+  const updateBatchText = (index: number, value: string) => {
+    const newTexts = [...batchTexts];
+    newTexts[index] = value;
+    setBatchTexts(newTexts);
+  };
+
+  // Submit batch
+  const handleBatchSubmit = async () => {
+    // Filter out empty texts
+    const validTexts = batchTexts.filter(t => t.trim());
+    if (validTexts.length === 0) {
+      setError('Please enter at least one text to synthesize');
+      return;
+    }
+
+    setIsProcessingBatch(true);
+    setError(null);
+    setBatchResults(new Array(validTexts.length).fill(null));
+
+    try {
+      const response = await api.batchTTS({
+        requests: validTexts.map(text => ({
+          text: text.trim(),
+          speaker,
+          language,
+          speed,
+          pitch,
+        })),
+      });
+
+      setBatchResults(response.results);
+    } catch (err) {
+      console.error('Failed to process batch:', err);
+      setError('Failed to process batch. Check console for details.');
+    } finally {
+      setIsProcessingBatch(false);
+    }
+  };
+
   // Download audio
+  const handleDownload = () => {
   const handleDownload = () => {
     if (!audioUrl || !audioRef.current) return;
     
@@ -234,48 +306,108 @@ function App() {
                 </div>
               </div>
 
-              {/* Text Input */}
-              <div className="text-input-container">
-                <textarea
-                  className="text-input"
-                  placeholder="Enter text to synthesize..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-              </div>
-
-              {/* Generate Button */}
+              {/* Batch Mode Toggle */}
               <button
-                className="generate-btn"
-                onClick={handleGenerate}
-                disabled={isGenerating || !text.trim()}
+                className="batch-toggle"
+                onClick={toggleBatchMode}
               >
-                {isGenerating ? (
-                  <>
-                    <span className="spinner"></span>
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Speech'
-                )}
+                {isBatchMode ? 'Switch to Single Mode' : 'Switch to Batch Mode'}
               </button>
 
-              {/* Stream Button */}
-              <button
-                className="stream-btn"
-                onClick={handleStream}
-                disabled={isStreaming || !text.trim()}
-              >
-                {isStreaming ? (
-                  <>
-                    <span className="streaming-indicator"></span>
-                    Streaming...
-                  </>
-                ) : (
-                  'Stream Audio'
-                )}
-              </button>
+              {/* Text Input or Batch Inputs */}
+              {isBatchMode ? (
+                <div className="batch-inputs-container">
+                  {batchTexts.map((batchText, index) => (
+                    <div key={index} className="batch-input-row">
+                      <span className="batch-input-label">{index + 1}.</span>
+                      <textarea
+                        className={`batch-input batch-input-${index}`}
+                        placeholder={`Text ${index + 1}...`}
+                        value={batchText}
+                        onChange={(e) => updateBatchText(index, e.target.value)}
+                      />
+                      {batchTexts.length > 1 && (
+                        <button
+                          className="batch-remove-btn"
+                          onClick={() => removeBatchInput(index)}
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {batchTexts.length < 10 && (
+                    <button
+                      className="batch-add-btn"
+                      onClick={addBatchInput}
+                    >
+                      + Add Text
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-input-container">
+                  <textarea
+                    className="text-input"
+                    placeholder="Enter text to synthesize..."
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                </div>
+              )}
+
+              {/* Generate/Stream Buttons (Single Mode) or Batch Submit */}
+              {isBatchMode ? (
+                <button
+                  className="batch-submit"
+                  onClick={handleBatchSubmit}
+                  disabled={isProcessingBatch || batchTexts.every(t => !t.trim())}
+                >
+                  {isProcessingBatch ? (
+                    <>
+                      <span className="spinner"></span>
+                      Processing Batch...
+                    </>
+                  ) : (
+                    `Process ${batchTexts.filter(t => t.trim()).length} Texts`
+                  )}
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="generate-btn"
+                    onClick={handleGenerate}
+                    disabled={isGenerating || !text.trim()}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <span className="spinner"></span>
+                        Generating...
+                      </>
+                    ) : (
+                      'Generate Speech'
+                    )}
+                  </button>
+
+                  {/* Stream Button */}
+                  <button
+                    className="stream-btn"
+                    onClick={handleStream}
+                    disabled={isStreaming || !text.trim()}
+                  >
+                    {isStreaming ? (
+                      <>
+                        <span className="streaming-indicator"></span>
+                        Streaming...
+                      </>
+                    ) : (
+                      'Stream Audio'
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </Allotment.Pane>
 
@@ -323,6 +455,28 @@ function App() {
                   <button className="stop-btn" onClick={stopStream}>
                     Stop
                   </button>
+                </div>
+              )}
+
+              {/* Batch Results */}
+              {isBatchMode && batchResults.length > 0 && (
+                <div className="batch-results">
+                  <h3>Batch Results</h3>
+                  <div className="batch-results-list">
+                    {batchResults.map((result, index) => (
+                      <div 
+                        key={index} 
+                        className={`batch-result ${result?.success ? 'success' : 'error'}`}
+                      >
+                        <span className="batch-result-label">Text {index + 1}:</span>
+                        {result?.success ? (
+                          <span className="batch-result-success">Success</span>
+                        ) : (
+                          <span className="batch-error">Failed: {result?.error || 'Unknown error'}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               </div>

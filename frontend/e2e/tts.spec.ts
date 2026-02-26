@@ -124,4 +124,52 @@ test.describe('Backend API', () => {
     expect(response.ok()).toBeTruthy();
     expect(response.headers()['content-type']).toContain('audio/wav');
   });
+
+  test('should stream audio via TTS/stream endpoint', async ({ request }) => {
+    const response = await request.post(`${BACKEND_URL}/tts/stream`, {
+      data: {
+        text: 'Hello',
+        speaker: 'Ryan',
+        language: 'English',
+        speed: 1.0,
+        pitch: 1.0,
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()['content-type']).toContain('audio/wav');
+    expect(response.headers()['transfer-encoding']).toBe('chunked');
+  });
+
+  test('should handle batch request via TTS/batch endpoint', async ({ request }) => {
+    const response = await request.post(`${BACKEND_URL}/tts/batch`, {
+      data: {
+        requests: [
+          { text: 'One', speaker: 'Ryan', language: 'English', speed: 1.0, pitch: 1.0 },
+          { text: 'Two', speaker: 'Vivian', language: 'English', speed: 1.0, pitch: 1.0 },
+        ],
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    const data = await response.json();
+    expect(data.results).toHaveLength(2);
+    expect(data.completed_count).toBe(2);
+  });
+});
+    expect(response.headers()['transfer-encoding']).toBe('chunked');
+  });
+
+  test('should handle batch request via TTS/batch endpoint', async ({ request }) => {
+    const response = await request.post(`${BACKEND_URL}/tts/batch`, {
+      data: {
+        requests: [
+          { text: 'One', speaker: 'Ryan', language: 'English', speed: 1.0, pitch: 1.0 },
+          { text: 'Two', speaker: 'Vivian', language: 'English', speed: 1.0, pitch: 1.0 },
+        ],
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    const data = await response.json();
+    expect(data.results).toHaveLength(2);
+    expect(data.completed_count).toBe(2);
+  });
 });

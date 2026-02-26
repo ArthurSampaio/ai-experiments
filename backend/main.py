@@ -9,6 +9,7 @@ import time
 import threading
 from typing import Optional, List, Dict, Any
 
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel, Field
@@ -165,6 +166,55 @@ def map_voice_to_speaker(voice: str) -> str:
     return voice_map.get(voice.lower(), "Ryan")
 
 
+def process_audio(wav_data: np.ndarray, sr: int, speed: float, pitch: float) -> tuple:
+    """
+    Process audio with speed and pitch adjustments.
+
+    Args:
+        wav_data: Audio waveform data
+        sr: Sample rate
+        speed: Speed factor (0.25 to 4.0)
+        pitch: Pitch factor (0.5 to 2.0)
+
+    Returns:
+        Processed audio data and sample rate
+    """
+    import numpy as np
+    from scipy import signal
+
+    processed = wav_data.copy()
+
+    # Apply pitch shift (using resampling technique)
+    # Pitch factor > 1 means higher pitch, < 1 means lower pitch
+    if pitch != 1.0:
+        # Simple pitch shift using resampling
+        # Higher pitch = faster playback = shorter duration
+        # We need to preserve duration, so we resample and then stretch back
+        length = len(processed)
+
+        # Resample to change pitch
+        new_length = int(length / pitch)
+        indices = np.round(np.linspace(0, length - 1, new_length)).astype(int)
+        processed = processed[indices]
+
+        # Resample back to original length to preserve duration
+        indices = np.round(np.linspace(0, len(processed) - 1, length)).astype(int)
+        processed = processed[indices]
+
+    # Apply speed adjustment (simple resampling)
+    if speed != 1.0:
+        length = len(processed)
+        new_length = int(length / speed)
+        indices = np.round(np.linspace(0, length - 1, new_length)).astype(int)
+        processed = processed[indices]
+
+        # Resample back to original sample rate
+        indices = np.round(np.linspace(0, len(processed) - 1, length)).astype(int)
+        processed = processed[indices]
+
+    return processed, sr
+
+
 # ============ Endpoints ============
 
 
@@ -319,6 +369,10 @@ async def create_tts(request: TTSRequest):
             speaker=request.speaker,
             instruct=request.instruct,
         )
+
+        # Apply speed and pitch processing
+        if request.speed != 1.0 or request.pitch != 1.0:
+            wavs[0], sr = process_audio(wavs[0], sr, request.speed, request.pitch)
 
         # Convert to bytes
         audio_buffer = io.BytesIO()

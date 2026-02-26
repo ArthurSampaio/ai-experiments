@@ -60,3 +60,17 @@ export interface SpeakersResponse {
 export interface LanguagesResponse {
   languages: string[];
 }
+
+// Audio History types
+export interface AudioHistoryItem {
+  id: string;
+  text: string;
+  textPreview: string; // First 30-50 chars
+  speaker: string;
+  language: string;
+  speed: number;
+  pitch: number;
+  timestamp: number;
+  duration?: number;
+  audioBlob?: Blob;
+}

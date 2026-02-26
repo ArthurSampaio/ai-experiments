@@ -2,6 +2,39 @@
 
 ## 2026-02-26 (continued)
 
+### Audio Playlist / History Feature
+- Added audio history/playlist below the audio widget (Spotify/Apple Music style)
+- IndexedDB storage with 30-item limit and FIFO overflow
+- Each entry includes: text preview (40 chars), language, voice, timestamp, duration
+- Click any playlist item to play that audio
+- Auto-play new audio when generated + added to playlist
+- playlist item (tr Delete button on eachash icon)
+- Persists across page reloads
+
+#### Implementation Details
+- Added `idb` library for IndexedDB operations
+- New files:
+  - `src/audioHistoryDB.ts` - IndexedDB service
+  - `src/hooks/useAudioHistory.ts` - React hook for history management
+  - `src/components/AudioPlaylist.tsx` - Playlist UI component
+  - `src/components/AudioPlaylist.css` - Playlist styles
+- Updated files:
+  - `src/types.ts` - Added AudioHistoryItem type
+  - `src/App.tsx` - Integrated playlist
+  - `src/App.css` - Added playlist spacing
+  - `package.json` - Added idb dependency
+- Added `e2e/playlist.spec.ts` - Playwright tests
+
+#### Test Coverage
+- Empty playlist display
+- Adding audio to playlist
+- Multiple audios in order
+- Metadata display
+- Play from playlist
+- Delete from playlist
+- Currently playing highlight
+- Persistence across reloads
+
 ### Audio Streaming & Batch Processing Implementation
 - Implemented multi-agent workflow (prompt-builder → researcher → planner → builder → verifier)
 - Original prompt scored 3/10, improved v2 scored 8.5/10 with RALPH success criteria

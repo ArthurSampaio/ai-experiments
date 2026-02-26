@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { api } from './api';
+import { useAudioHistory } from './hooks/useAudioHistory';
+import { AudioPlaylist } from './components/AudioPlaylist';
+import type { AudioHistoryItem } from './types';
 import './App.css';
 
 function App() {
@@ -24,6 +27,10 @@ function App() {
   
   // Audio player ref
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Audio history
+  const { history, isLoading: historyLoading, addToHistory, removeFromHistory } = useAudioHistory();
+  const [currentPlayingId, setCurrentPlayingId] = useState<string | undefined>();
 
   // Load options on mount
   useEffect(() => {
@@ -73,6 +80,26 @@ function App() {
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       
+      // Add to history
+      const historyItem = await addToHistory({
+        text: text.trim(),
+        speaker,
+        language,
+        speed,
+        pitch,
+        audioBlob: blob,
+      });
+      
+      // Set current playing ID for the playlist highlight
+      setCurrentPlayingId(historyItem.id);
+      
+      // Get duration when metadata is loaded
+      const audio = new Audio(url);
+      audio.addEventListener('loadedmetadata', () => {
+        // Update the history item with duration if needed
+        // For now, we'll just play the audio
+      });
+      
     } catch (err) {
       console.error('Failed to generate speech:', err);
       setError('Failed to generate speech. Check console for details.');
@@ -99,6 +126,33 @@ function App() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Play from playlist
+  const handlePlaylistPlay = (item: AudioHistoryItem) => {
+    // Clean up previous audio URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    
+    if (item.audioBlob) {
+      const url = URL.createObjectURL(item.audioBlob);
+      setAudioUrl(url);
+      setCurrentPlayingId(item.id);
+    }
+  };
+
+  // Handle playlist delete
+  const handlePlaylistDelete = async (id: string) => {
+    // If deleting the currently playing item, stop playback
+    if (currentPlayingId === id) {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+      setCurrentPlayingId(undefined);
+    }
+    await removeFromHistory(id);
   };
 
   // Handle keyboard shortcut (Ctrl/Cmd + Enter to generate)
@@ -282,6 +336,15 @@ function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Audio Playlist */}
+              <AudioPlaylist
+                history={history}
+                currentPlayingId={currentPlayingId}
+                isLoading={historyLoading}
+                onPlay={handlePlaylistPlay}
+                onDelete={handlePlaylistDelete}
+              />
             </div>
           </Allotment.Pane>
         </Allotment>

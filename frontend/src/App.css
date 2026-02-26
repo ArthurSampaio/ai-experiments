@@ -556,6 +556,7 @@ body {
   padding: 16px;
   background: #f1f3f4;
   border-radius: 8px;
+  margin-bottom: 0;
 }
 
 .settings-summary h3 {

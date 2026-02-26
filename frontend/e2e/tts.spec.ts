@@ -43,6 +43,14 @@ test.describe('Qwen TTS Web Interface', () => {
       // Wait for API to load
       await page.waitForTimeout(3000);
       
+      // Set up intercept to verify no Content-Disposition: attachment header
+      let ttsResponseHeaders: Record<string, string> = {};
+      await page.route('**/tts', async (route) => {
+        const response = await route.fetch();
+        ttsResponseHeaders = response.headers();
+        await route.fulfill({ response });
+      });
+      
       // Enter text
       const textInput = page.locator('.text-input');
       await expect(textInput).toBeVisible();
@@ -63,6 +71,10 @@ test.describe('Qwen TTS Web Interface', () => {
       // Check download button appears
       const downloadBtn = page.locator('.download-btn');
       await expect(downloadBtn).toBeVisible();
+      
+      // Verify download is NOT triggered (no Content-Disposition: attachment)
+      const contentDisposition = ttsResponseHeaders['content-disposition'] || '';
+      expect(contentDisposition).not.toContain('attachment');
     });
 
     test('should update settings summary when changing controls', async ({ page }) => {
@@ -123,6 +135,9 @@ test.describe('Backend API', () => {
     });
     expect(response.ok()).toBeTruthy();
     expect(response.headers()['content-type']).toContain('audio/wav');
+    // Verify audio streams (no Content-Disposition: attachment)
+    const contentDisposition = response.headers()['content-disposition'] || '';
+    expect(contentDisposition).not.toContain('attachment');
   });
 
   test('should stream audio via TTS/stream endpoint', async ({ request }) => {

@@ -374,7 +374,6 @@ async def create_speech(request: SpeechRequest):
         return Response(
             content=audio_buffer.read(),
             media_type="audio/wav",
-            headers={"Content-Disposition": f"attachment; filename=speech.wav"},
         )
 
     except Exception as e:
@@ -428,7 +427,6 @@ async def create_tts(request: TTSRequest):
         return Response(
             content=audio_buffer.read(),
             media_type="audio/wav",
-            headers={"Content-Disposition": f"attachment; filename=tts.wav"},
         )
 
     except Exception as e:

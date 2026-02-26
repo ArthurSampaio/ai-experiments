@@ -227,6 +227,83 @@ body {
   cursor: not-allowed;
 }
 
+/* Stream Button */
+.stream-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  margin-top: 8px;
+  background: #34a853;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stream-btn:hover:not(:disabled) {
+  background: #2e7d32;
+}
+
+.stream-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.stream-btn:disabled {
+  background: #9aa0a6;
+  cursor: not-allowed;
+}
+
+/* Streaming Indicator */
+.streaming-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #4285f4;
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.streaming-indicator.playing {
+  background: #34a853;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* Streaming Status */
+.streaming-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: #e8f0fe;
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+.stop-btn {
+  padding: 6px 16px;
+  background: #d93025;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stop-btn:hover {
+  background: #c5221f;
+}
+
 .spinner {
   width: 18px;
   height: 18px;

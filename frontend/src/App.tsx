@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { api } from './api';
+import { useStreamingAudio } from './hooks/useStreamingAudio';
 import './App.css';
 
 function App() {
@@ -21,6 +22,17 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [health, setHealth] = useState<{ status: string; model_loaded: boolean } | null>(null);
+  
+  // Streaming audio state
+  const { 
+    isLoading: isStreaming, 
+    isPlaying: isPlayingStream,
+    error: streamError,
+    startStream,
+    stopStream 
+  } = useStreamingAudio({
+    onError: (err) => setError(err.message),
+  });
   
   // Audio player ref
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -88,6 +100,31 @@ function App() {
       setError('Failed to generate speech. Check console for details.');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Stream audio (progressive playback)
+  const handleStream = async () => {
+    if (!text.trim()) {
+      setError('Please enter some text to synthesize');
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const stream = await api.streamTTS({
+        text: text.trim(),
+        speaker,
+        language,
+        speed,
+        pitch,
+      });
+      
+      startStream(stream);
+    } catch (err) {
+      console.error('Failed to start streaming:', err);
+      setError('Failed to start streaming. Check console for details.');
     }
   };
 
@@ -223,6 +260,22 @@ function App() {
                   'Generate Speech'
                 )}
               </button>
+
+              {/* Stream Button */}
+              <button
+                className="stream-btn"
+                onClick={handleStream}
+                disabled={isStreaming || !text.trim()}
+              >
+                {isStreaming ? (
+                  <>
+                    <span className="streaming-indicator"></span>
+                    Streaming...
+                  </>
+                ) : (
+                  'Stream Audio'
+                )}
+              </button>
             </div>
           </Allotment.Pane>
 
@@ -260,6 +313,18 @@ function App() {
                     <p>Generated audio will appear here</p>
                   </div>
                 )}
+              </div>
+
+              {/* Streaming Status */}
+              {(isStreaming || isPlayingStream) && (
+                <div className="streaming-status">
+                  <span className={`streaming-indicator ${isPlayingStream ? 'playing' : ''}`}></span>
+                  <span>{isPlayingStream ? 'Playing...' : 'Loading audio...'}</span>
+                  <button className="stop-btn" onClick={stopStream}>
+                    Stop
+                  </button>
+                </div>
+              )}
               </div>
 
               {/* Settings Summary */}

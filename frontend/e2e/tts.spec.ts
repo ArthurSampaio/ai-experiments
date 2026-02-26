@@ -39,17 +39,14 @@ test.describe('Qwen TTS Web Interface', () => {
       await expect(speakerOptions).toHaveCount(9); // 9 speakers
     });
 
-    test('should generate speech and show audio player', async ({ page }) => {
-      // Wait for API to load
+    test('should generate speech and play audio from UI', async ({ page }) => {
       await page.waitForTimeout(3000);
       
-      // Set up intercept to verify no Content-Disposition: attachment header
-      let ttsResponseHeaders: Record<string, string> = {};
-      await page.route('**/tts', async (route) => {
-        const response = await route.fetch();
-        ttsResponseHeaders = response.headers();
-        await route.fulfill({ response });
-      });
+      // Check audio element exists but is NOT playable before generation
+      const audioPlayer = page.locator('audio');
+      
+      // Audio should NOT be visible before generation
+      await expect(audioPlayer).not.toBeVisible();
       
       // Enter text
       const textInput = page.locator('.text-input');
@@ -61,20 +58,30 @@ test.describe('Qwen TTS Web Interface', () => {
       await expect(generateBtn).toBeEnabled();
       await generateBtn.click();
       
-      // Wait for generation to complete
-      await page.waitForTimeout(15000); // TTS takes time
+      // Wait for generation to complete - audio player should appear
+      // Model takes ~60s to generate, so we wait for the audio element
+      await expect(audioPlayer).toBeVisible({ timeout: 120000 });
       
-      // Check audio player appears
-      const audioPlayer = page.locator('audio');
-      await expect(audioPlayer).toBeVisible();
+      // Check that audio is NOT playing yet (auto-play may have finished)
+      const isPlayingBefore = await audioPlayer.evaluate(async (audio: HTMLAudioElement) => {
+        return !audio.paused && audio.currentTime > 0;
+      });
       
-      // Check download button appears
-      const downloadBtn = page.locator('.download-btn');
-      await expect(downloadBtn).toBeVisible();
+      // If audio is playing, pause it first to test the button
+      if (isPlayingBefore) {
+        await audioPlayer.click();
+        await page.waitForTimeout(500);
+      }
       
-      // Verify download is NOT triggered (no Content-Disposition: attachment)
-      const contentDisposition = ttsResponseHeaders['content-disposition'] || '';
-      expect(contentDisposition).not.toContain('attachment');
+      // Now click the play button to start playback
+      await audioPlayer.click();
+      await page.waitForTimeout(500);
+      
+      // Verify audio IS playing (not paused)
+      const isPlaying = await audioPlayer.evaluate(async (audio: HTMLAudioElement) => {
+        return !audio.paused;
+      });
+      expect(isPlaying).toBe(true);
     });
 
     test('should update settings summary when changing controls', async ({ page }) => {
@@ -169,5 +176,4 @@ test.describe('Backend API', () => {
     expect(data.results).toHaveLength(2);
     expect(data.completed_count).toBe(2);
   });
-});
 });

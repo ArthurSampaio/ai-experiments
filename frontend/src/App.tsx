@@ -73,11 +73,6 @@ function App() {
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       
-      // Auto-play the generated audio
-      if (audioRef.current) {
-        audioRef.current.src = url;
-        audioRef.current.play();
-      }
     } catch (err) {
       console.error('Failed to generate speech:', err);
       setError('Failed to generate speech. Check console for details.');
@@ -85,6 +80,14 @@ function App() {
       setIsGenerating(false);
     }
   };
+
+  // Auto-play when audio URL changes
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+      audioRef.current.src = audioUrl;
+      audioRef.current.play().catch(console.error);
+    }
+  }, [audioUrl]);
 
   // Download audio
   const handleDownload = () => {

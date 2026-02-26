@@ -1,5 +1,42 @@
 # Changelog - AI Experiments
 
+## 2026-02-26 (continued)
+
+### Audio Streaming & Batch Processing Implementation
+- Implemented multi-agent workflow (prompt-builder → researcher → planner → builder → verifier)
+- Original prompt scored 3/10, improved v2 scored 8.5/10 with RALPH success criteria
+
+#### Backend Streaming & Batch Endpoints (Done)
+- POST /tts/stream - Streaming TTS with chunked audio response
+- POST /tts/batch - Batch processing with Semaphore(2) concurrency limit
+- Both support speed and pitch adjustments
+
+#### Frontend Streaming & Batch UI (Done)
+- useStreamingAudio hook using Web Audio API for progressive playback
+- Streaming UI panel with real-time playback
+- Batch processing UI with request queue and progress
+
+#### E2E Tests (Playwright)
+- Added streaming.spec.ts, batch.spec.ts, tts.spec.ts
+- Fixed: Downgraded Playwright to 1.57.0 (1.58.0 has ESM bug)
+- Backend verified working: /health, /v1/speakers, /v1/languages, /tts, /tts/stream, /tts/batch
+- Added Python test script (test_backend.py) for quick verification
+
+### Verification Results
+- ✅ Backend health: healthy, model_loaded: true, device: mps
+- ✅ 9 speakers, 10 languages available
+- ✅ /tts endpoint generates audio (499KB)
+- ✅ /tts/stream endpoint streams audio (chunked)
+- ✅ /tts/batch endpoint processes multiple requests
+
+### Bug Fixes (2026-02-26)
+- Fixed App.tsx JSX structure (streaming/batch UI additions broke the markup)
+- Fixed useStreamingAudio.ts TypeScript errors (reader.read() type issues)
+- Restored App.tsx to working version from commit a4b4435
+- Frontend now builds and runs successfully
+
+---
+
 ## 2026-02-26
 
 ### Qwen TTS Web Interface Project Started

@@ -87,16 +87,16 @@ export function useStreamingAudio(options?: UseStreamingAudioOptions): UseStream
     };
   }, [stopStream]);
 
-  const processWavData = useCallback(async (reader: ReadableStreamReader<Uint8Array>) => {
+  const processWavData = useCallback(async (reader: any) => {
     try {
       const chunks: Uint8Array[] = [];
       
       while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const result: any = await reader.read();
+        if (result.done) break;
         
-        if (value) {
-          chunks.push(value);
+        if (result.value) {
+          chunks.push(new Uint8Array(result.value));
         }
         
         // Yield to event loop to keep UI responsive
